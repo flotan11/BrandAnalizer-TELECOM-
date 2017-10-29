@@ -43,10 +43,11 @@ import static java.io.File.createTempFile;
 
 @SuppressLint("SimpleDateFormat")
 public class MainActivity extends Activity {
-    Boolean first;
+    Boolean first=true;
+    int orientation=0;
     Context context;
     private static final int CAMERA_PIC_REQUEST = 001;
-    String mCurrentPhotoPath;
+    String mCurrentPhotoPath="";
 
     private LinearLayout mGallery;
     private int[] mImgIds;
@@ -62,13 +63,14 @@ public class MainActivity extends Activity {
    //     initData();
    //     initView();
         if (savedInstanceState!=null && savedInstanceState.containsKey("picture")) {
-            first=false;
             mCurrentPhotoPath=savedInstanceState.getString("picture");
-            ImageView image = (ImageView) findViewById(R.id.imageView1);
-            image.setImageURI(Uri.parse(mCurrentPhotoPath));
-            image.setImageMatrix(takeMatrix(image));
-  //          image.setScaleType(ImageView.ScaleType.MATRIX);
-            image.invalidate();
+            if (mCurrentPhotoPath!="") {
+                first=false;
+                ImageView image = (ImageView) findViewById(R.id.imageView1);
+                image.setImageURI(Uri.parse(mCurrentPhotoPath));
+                //          image.setScaleType(ImageView.ScaleType.MATRIX);
+                image.invalidate();
+            }
         }
         Button button1 = (Button) findViewById(R.id.button1);
         button1.setOnClickListener(new OnClickListener() {
@@ -81,7 +83,6 @@ public class MainActivity extends Activity {
 
     private void dispatchTakePictureIntent() {
             Intent takePictureIntent = new Intent(ACTION_IMAGE_CAPTURE);
-            first=true;
             if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
                 File photoFile = null;
                 try {
@@ -95,10 +96,6 @@ public class MainActivity extends Activity {
                             photoFile);
                     takePictureIntent.putExtra(EXTRA_OUTPUT, photoURI);
                     startActivityForResult(takePictureIntent, CAMERA_PIC_REQUEST);
-
-    /*                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                            Uri.fromFile(photoFile));
-                    startActivityForResult(takePictureIntent, CAMERA_PIC_REQUEST);*/
                 }
             }
     }
@@ -119,7 +116,7 @@ public class MainActivity extends Activity {
         if (requestCode == CAMERA_PIC_REQUEST){
             ImageView image = (ImageView) findViewById(R.id.imageView1);
             image.setImageURI(Uri.parse(mCurrentPhotoPath));
-            image.setImageMatrix(takeMatrix(image));
+  //          image.setImageMatrix(takeMatrix(image));
   //          image.setScaleType(ImageView.ScaleType.MATRIX);
             image.invalidate();
         }
@@ -132,7 +129,7 @@ public class MainActivity extends Activity {
         super.onSaveInstanceState(outState);
     }
 
-    private Matrix takeMatrix(ImageView image){
+/*    private Matrix takeMatrix(ImageView image) {
         Matrix matrix = new Matrix(image.getImageMatrix());
         ExifInterface exifReader = null;
         try {
@@ -140,40 +137,40 @@ public class MainActivity extends Activity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int orientation = exifReader.getAttributeInt(ExifInterface.TAG_ORIENTATION, -1);
-        if (orientation ==ExifInterface.ORIENTATION_NORMAL) {
-// Do nothing. The original image is fine.
-        } else if (orientation == ExifInterface.ORIENTATION_ROTATE_90) {
-            matrix.postRotate(90,image.getDrawable().getBounds().width()/5,image.getDrawable().getBounds().height()/5);
-        } else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) {
-            matrix.postRotate(180,image.getDrawable().getBounds().width()/2,image.getDrawable().getBounds().height()/2);
-        } else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) {
-                   matrix.postRotate(270,image.getDrawable().getBounds().width()/2,image.getDrawable().getBounds().height()/2);
-        }
-        if (first==true) {
-            int Height = image.getHeight();
-            int Width = image.getWidth();
-            int newHeight = 300;
-            int newWidth = 300;
-            Drawable drawable = image.getDrawable();
-            Rect rectDrawable = drawable.getBounds();
-            float leftOffset = (image.getMeasuredWidth() - rectDrawable.width()) / 2f;
-            float topOffset = (image.getMeasuredHeight() - rectDrawable.height()) / 2f;
-            float scaleHeight = ((float) newHeight / Height);
-            float scaleWidth = ((float) newWidth / Width);
-            float minScale = Math.min(scaleHeight, scaleWidth);
+            if (orientation != exifReader.getAttributeInt(ExifInterface.TAG_ORIENTATION, -1)) {
+                orientation = exifReader.getAttributeInt(ExifInterface.TAG_ORIENTATION, -1);
+                if (orientation == ExifInterface.ORIENTATION_NORMAL) {
+                    // Do nothing. The original image is fine.
+                } else if (orientation == ExifInterface.ORIENTATION_ROTATE_90) {
+                    matrix.postRotate(90, image.getDrawable().getBounds().width() / 2, image.getDrawable().getBounds().height() / 2);
+                } else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) {
+                    matrix.postRotate(180, image.getDrawable().getBounds().width() / 2, image.getDrawable().getBounds().height() / 2);
+                } else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) {
+                    matrix.postRotate(270, image.getDrawable().getBounds().width() / 2, image.getDrawable().getBounds().height() / 2);
+                }
+            }
+            if (first == true) {
+                int Height = image.getHeight();
+                int Width = image.getWidth();
+                int newHeight = 300;
+                int newWidth = 300;
+                Drawable drawable = image.getDrawable();
+                Rect rectDrawable = drawable.getBounds();
+                float scaleHeight = ((float) newHeight / Height);
+                float scaleWidth = ((float) newWidth / Width);
+                float minScale = Math.min(scaleHeight, scaleWidth);
 
-            // tx, ty should be the translation to take the image back to the screen center
-            float tx = Math.max(0,
-                    0.5f * ((float) image.getMeasuredWidth() - (minScale * rectDrawable.width())));
-            float ty = Math.max(0,
-                    0.5f * ((float) image.getMeasuredHeight() - (minScale * rectDrawable.height())));
-            matrix.postScale(scaleWidth, scaleHeight);
-            matrix.postTranslate(tx, ty);
-        }
-        first=false;
-        return matrix;
-    }
+                // tx, ty should be the translation to take the image back to the screen center
+                float tx = Math.max(0,
+                        0.5f * ((float) image.getMeasuredWidth() - (minScale * rectDrawable.width())));
+                float ty = Math.max(0,
+                        0.5f * ((float) image.getMeasuredHeight() - (minScale * rectDrawable.height())));
+                matrix.postScale(scaleWidth, scaleHeight);
+                matrix.postTranslate(tx, ty);
+            }
+            first = false;
+            return matrix;
+        }*/
 
     private void initData()
     {
