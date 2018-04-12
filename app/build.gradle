@@ -24,6 +24,8 @@ dependencies {
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
+    compile group: 'org.bytedeco', name: 'javacv', version: '0.11'
+    compile group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '2.4.11-0.11', classifier: 'android-arm'
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:25.3.1'

@@ -36,7 +36,3 @@
     </application>
 
 </manifest>
-
-<!-- Eventuellement à remettre pour l'icone en cercle (sur certains smartphones)
-    android:roundIcon="@mipmap/ic_launcher_round"
--->

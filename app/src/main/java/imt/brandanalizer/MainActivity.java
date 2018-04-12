@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -11,12 +12,10 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.android.volley.Cache;
 import com.android.volley.Network;
@@ -41,27 +40,16 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-import static android.provider.MediaStore.ACTION_IMAGE_CAPTURE;
-import static android.provider.MediaStore.EXTRA_OUTPUT;
 import static android.support.v4.content.FileProvider.getUriForFile;
 import static java.io.File.createTempFile;
 import static org.bytedeco.javacpp.opencv_highgui.imread;
 
 @SuppressLint("SimpleDateFormat")
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    Boolean first=true;
-    int orientation=0;
-    Context context;
-    private static final int CAMERA_PIC_REQUEST = 001;
     String mCurrentPhotoPath="";
     private Uri mImageUri;
 
     ServerConnection serverTools = new ServerConnection();
-
-    private LinearLayout mGallery;
-    private int[] mImgIds;
-    private LayoutInflater mInflater;
-    private HorizontalScrollView horizontalScrollView;
 
     static String tag = MainActivity.class.getName();
 
@@ -81,9 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final double EDGE_THRESHOLD = 10;
     private static final double SIGMA = 1.6;
 
-    public opencv_core.Mat img;
     private opencv_nonfree.SIFT SiftDesc;
-    private opencv_core.Mat descriptor;
 
     private String filePath;
     private opencv_core.Mat[] descriptorsRef;
@@ -98,75 +84,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private String result;
 
-
-
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//        context = this.getApplicationContext();
-//  //      mInflater = LayoutInflater.from(this);
-//   //     initData();
-//   //     initView();
-//        if (savedInstanceState!=null && savedInstanceState.containsKey("picture")) {
-//            mCurrentPhotoPath=savedInstanceState.getString("picture");
-//            if (mCurrentPhotoPath!="") {
-//                first=false;
-//                ImageView image = (ImageView) findViewById(R.id.imageView1);
-//                image.setImageURI(Uri.parse(mCurrentPhotoPath));
-//                //          image.setScaleType(ImageView.ScaleType.MATRIX);
-//                image.invalidate();
-//            }
-//        }
-//        Button button1 = (Button) findViewById(R.id.button1);
-//        button1.setOnClickListener(new OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                dispatchTakePictureIntent();
-//            }
-//        });
-//    }
-
-    private void dispatchTakePictureIntent() {
-            Intent takePictureIntent = new Intent(ACTION_IMAGE_CAPTURE);
-            if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-                File photoFile = null;
-                try {
-                    photoFile = createImageFile();
-                } catch (IOException e) {
-                    Log.d("PERMISSION", e.getMessage());
-                }
-                if (photoFile != null) {
-                    Uri photoURI = getUriForFile(this,
-                            "com.brandanalizer.fileprovider",
-                            photoFile);
-                    takePictureIntent.putExtra(EXTRA_OUTPUT, photoURI);
-                    startActivityForResult(takePictureIntent, CAMERA_PIC_REQUEST);
-                }
-            }
-    }
-
     private File createImageFile() throws IOException {
-        // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp+"_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);//getFilesDir();
         File image = createTempFile(imageFileName,".jpg",storageDir);
-        // Save a file: path for use with ACTION_VIEW intents
+
         mCurrentPhotoPath = "file:" +image.getAbsolutePath();
         return image;
     }
-
- /*   @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CAMERA_PIC_REQUEST){
-            ImageView image = (ImageView) findViewById(R.id.imageView1);
-            image.setImageURI(Uri.parse(mCurrentPhotoPath));
-  //          image.setImageMatrix(takeMatrix(image));
-  //          image.setScaleType(ImageView.ScaleType.MATRIX);
-            image.invalidate();
-        }
-    }*/
 
     @Override
     public void onSaveInstanceState(Bundle outState)
@@ -174,26 +100,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         outState.putString("picture",mCurrentPhotoPath);
         super.onSaveInstanceState(outState);
     }
-
-/*    private void initView()
-    {
-        mGallery = (LinearLayout) findViewById(R.id.id_gallery);
-
-        for (int i = 0; i < mImgIds.length; i++)
-        {
-
-            View view = mInflater.inflate(R.layout.activity_gallery_item,
-                    mGallery, false);
-            ImageView img = (ImageView) view
-                    .findViewById(R.id.id_index_gallery_item_image);
-            img.setImageResource(mImgIds[i]);
-            TextView txt = (TextView) view
-                    .findViewById(R.id.id_index_gallery_item_text);
-            txt.setText("info "+i);
-            mGallery.addView(view);
-        }
-    }
-}*/
 
     public static File ToCache(Context context, String Path, String fileName) {
         InputStream input;
@@ -245,7 +151,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         cache = new DiskBasedCache(getCacheDir(),67108864); //Max cache Size en Bytes
         Network network = new BasicNetwork(new HurlStack());
         requestWithCache = new RequestQueue(cache,network);
@@ -270,6 +175,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                     if (photoFile != null) {
                         Uri photoURI = getUriForFile(this, "com.brandanalizer.fileprovider", photoFile);
+                        mediaCapture.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                         mediaCapture.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                         startActivityForResult(mediaCapture, Capture_RequestCode);
                     }
@@ -277,33 +183,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             //Click on Library Button
             case R.id.btnLibrary:
-                Intent mediaLibrary = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                mCurrentPhotoPath = "file:" +mediaLibrary.getData().getPath();
-                startActivityForResult(mediaLibrary, Library_RequestCode);
+                Intent intenti = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                intenti.setType("image/*");
+                startActivityForResult(intenti, Library_RequestCode);
                 break;
             //Click on Analysis Button
             case R.id.btnAnalysis:
                 if (mImageUri!=null) {
                     filePath = mImageUri.getPath();
                     Log.i(tag, "absolutepath " + filePath);
-
                     try {
-                        result = analyse(this, classifierArray, classifiers, "Data_BOW/TestImage/Pepsi_13.jpg");
+                        result = analyse(this, classifierArray, classifiers, filePath);
                         Log.i(tag, "result = " + result);
-
-                        //Display the matched file
-                        //Bitmap myBitmap = BitmapFactory.decodeFile("app/assets/Data_BOW/test/"+result);
-                        //imageCaptured.setImageBitmap(myBitmap);
-
-                        // get input stream
-                        InputStream ims = getAssets().open("Data_BOW/TestImage/" + result);
-                        // load image as Drawable
+                        Toast toast = Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT);
+                        toast.show();
+                        InputStream ims = getAssets().open("Data_BOW/TestImage" + result);
                         Drawable d = Drawable.createFromStream(ims, null);
-                        // set image to ImageView
                         imageCaptured.setImageDrawable(d);
                         ims.close();
-
-
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -312,9 +209,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.imageCaptured:
                 if (result!=null) {
-                    //Ouvrir navigateur web avec l'url de l'image matchée
-                    //String fileName = bestFileMatching.getName();
-                    String fileName = result;
+                    String fileName = bestFileMatching.getName();
                     fileName = fileName.substring(0, fileName.lastIndexOf('_'));
                     String url = "https://fr.wikipedia.org/wiki/" + fileName;
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -326,39 +221,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     protected String analyse(Context context, ArrayList<File> classifierArray, opencv_ml.CvSVM[] classifiers, String testedImagePath) throws IOException {
-/*        img = imread(mImageUri.toString());
-        descriptor = new opencv_core.Mat();
-        opencv_features2d.KeyPoint keypoints = new opencv_features2d.KeyPoint();
-        SiftDesc.detect(img, keypoints);
-        SiftDesc.compute(img, keypoints, descriptor);
-
-        Log.i("test", "Nb of detected keypoints:" + keypoints.capacity());
-
-        opencv_features2d.BFMatcher matcher = new opencv_features2d.BFMatcher();
-        opencv_features2d.DMatchVectorVector[] matches = new opencv_features2d.DMatchVectorVector[images_ref.length];
-        opencv_features2d.DMatchVectorVector[] bestMatches = new opencv_features2d.DMatchVectorVector[images_ref.length];
-        float minDistance = Float.MAX_VALUE;
-        int imageRefNumber = 0;
-
-        for(int i=0;i<images_ref.length;i++){
-            matches[i] = new opencv_features2d.DMatchVectorVector();
-            matcher.knnMatch(descriptor, descriptorsRef[i], matches[i], 2);
-            float distanceCurrent = refineMatches(matches[i]);
-
-            Log.i(tag, "score "+distanceCurrent);
-            if(distanceCurrent<minDistance){
-                minDistance = distanceCurrent;
-                imageRefNumber = i;
-            }
-            Log.i(tag, "min "+minDistance);
-
-        }
-
-        AssetManager assetManager = getAssets();
-        String[] allPaths = assetManager.list("Data_BOW/TestImage");
-
-        return allPaths[imageRefNumber];
-*/
         Loader.load(opencv_core.class);
         opencv_core.Mat vocabulary;
         String[] listURL = null;
@@ -388,15 +250,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         opencv_core.Mat inputDescriptors = new opencv_core.Mat();
 
         int pos = testedImagePath.indexOf("/");
-        int occurrence=1;
+        int occurrence=0;
+        for(int i=0 ; i < testedImagePath.length(); i++){
+            if(testedImagePath.charAt(i) == '/' ){
+                occurrence++;
+            }
+        }
         while( --occurrence > 0 && pos != -1 ){
             pos = testedImagePath.indexOf("/", pos+1);
         }
-        String photoTestName = testedImagePath.substring(pos+1);
-        String photoTest = toCache(context, testedImagePath , "Pepsi_13.jpg").getAbsolutePath();
-        opencv_core.Mat image = imread(photoTest,1);
-        if(image.empty()){ throw new RuntimeException("cannot fin img " + photoTest + " in classpath");  }
-        opencv_core.Mat imageTest = image; // RGB image matrix
+
+        //String photoTest = toCache(context,testedImagePath.substring(pos+1),testedImagePath.substring(pos+1)).getAbsolutePath();
+        //String photoTest = toCache(context, testedImagePath , "Pepsi_13.jpg").getAbsolutePath();
+        opencv_core.Mat imageTest = imread(testedImagePath,1); // RGB image matrix
+        if(imageTest.empty()){ throw new RuntimeException("cannot fin img "  + " in classpath");  }
         sift.detectAndCompute(imageTest, opencv_core.Mat.EMPTY, keyPoints, inputDescriptors); // Detect interesting point in image and convert to matrice | Find keypoints and descriptors in a single step
         BOWDescriptor.compute(imageTest, keyPoints, imageDescriptor);  // Compare imageTest detected keyPoints and store in responseHist | Computes an image descriptor using the set visual vocabulary. Image Descriptor = computed output image descriptor
 
@@ -420,16 +287,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        // if image is captured by the
 
-        if((requestCode == Capture_RequestCode || requestCode == Library_RequestCode) && resultCode == RESULT_OK){
-
-            mImageUri = Uri.parse(mCurrentPhotoPath);//data.getData();
-            //Bundle extras = data.getExtras();
-            //Bitmap imageBitmap = (Bitmap) extras.get("data");
-            imageCaptured.setImageURI(mImageUri);//selectedImageUri);
-            //imageCaptured.setImageBitmap(imageBitmap);
-
+        if(resultCode == RESULT_OK){
+            if (requestCode==Library_RequestCode){
+                Uri selectedImage = data.getData();
+                try{
+                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),selectedImage);
+                    imageCaptured.setImageBitmap(bitmap);
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+                mCurrentPhotoPath=selectedImage.getPath();
+            }else if(requestCode == Capture_RequestCode) {
+                mImageUri = Uri.parse(mCurrentPhotoPath);
+                imageCaptured.setImageURI(mImageUri);
+            }
         }
     }
 
@@ -473,65 +345,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return imagesRef;
     }
 
-
-    private static float refineMatches(opencv_features2d.DMatchVectorVector oldMatches) {
-        // Ratio of Distances
-        double RoD = 0.6;
-        opencv_features2d.DMatchVectorVector newMatches = new opencv_features2d.DMatchVectorVector();
-
-        // Refine results 1: Accept only those matches, where best dist is < RoD
-        // of 2nd best match.
-        int sz = 0;
-        newMatches.resize(oldMatches.size());
-
-        double maxDist = 0.0, minDist = 1e100; // infinity
-
-        for (int i = 0; i < oldMatches.size(); i++) {
-            newMatches.resize(i, 1);
-            if (oldMatches.get(i, 0).distance() < RoD
-                    * oldMatches.get(i, 1).distance()) {
-                newMatches.put(sz, 0, oldMatches.get(i, 0));
-                sz++;
-                double distance = oldMatches.get(i, 0).distance();
-                if (distance < minDist)
-                    minDist = distance;
-                if (distance > maxDist)
-                    maxDist = distance;
-                //Log.i(tag,"DISTANCE "+ distance);
-            }
-        }
-        newMatches.resize(sz);
-
-        // Refine results 2: accept only those matches which distance is no more
-        // than 3x greater than best match
-        sz = 0;
-        opencv_features2d.DMatchVectorVector brandNewMatches = new opencv_features2d.DMatchVectorVector();
-        brandNewMatches.resize(newMatches.size());
-        for (int i = 0; i < newMatches.size(); i++) {
-            // TODO: Move this weights into params: Move this weights into params
-            // Since minDist may be equal to 0.0, add some non-zero value
-            if (newMatches.get(i, 0).distance() <= 3 * minDist) {
-                brandNewMatches.resize(sz, 1);
-                brandNewMatches.put(sz, 0, newMatches.get(i, 0));
-                sz++;
-            }
-        }
-        brandNewMatches.resize(sz);
-
-        float somme= 0;
-        for(int i=0;i<brandNewMatches.size();i++){
-            somme += brandNewMatches.get(i,0).distance();
-        }
-        return somme / brandNewMatches.size();
-    }
-
     public static ArrayList<File> convertCacheToClassifierArray(Context context){
         ArrayList<File> classifierArray = new ArrayList<>();
         File cacheDir = new File(context.getFilesDir().getPath()+"/EZ_time_tracker");
         File[] listOfFiles = cacheDir.listFiles();
-        for(int i=0 ; i < listOfFiles.length ; i++) {
-            if( !listOfFiles[i].getName().contains("volley") ){
-                classifierArray.add(listOfFiles[i]);
+        if(listOfFiles!=null) {
+            for (int i = 0; i < listOfFiles.length; i++) {
+                if (!listOfFiles[i].getName().contains("volley")) {
+                    classifierArray.add(listOfFiles[i]);
+                }
             }
         }
         return classifierArray;
@@ -576,6 +398,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return null;
         }
     }
-
 
 }

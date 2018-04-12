@@ -1,33 +1,27 @@
 package imt.brandanalizer;
 
 import android.content.Context;
-import android.content.res.AssetManager;
 import android.util.Log;
-
 import com.android.volley.Cache;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.DiskBasedCache;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Writer;
 import java.util.ArrayList;
 
 public class ServerConnection {
     ArrayList<File> filesAvailab = new ArrayList<File>();
+    static File vocabulary;
 
     public ServerConnection(){
     }
@@ -41,17 +35,16 @@ public class ServerConnection {
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-
                         try {
                             for(int i=0; i<response.getJSONArray("brands").length(); i++) {
                                 String urlXml = "http://www-rech.telecom-lille.fr/nonfreesift" + response.getJSONArray("brands").getJSONObject(i).getString("classifier");
 
                                 getStringServ(context,response.getJSONArray("brands").getJSONObject(i).getString("classifier"), cache, response.getJSONArray("brands").length(), i);
+                                getYml(context);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-
                     }
                 },
                 new Response.ErrorListener() {
@@ -61,12 +54,7 @@ public class ServerConnection {
                     }
                 }
         );
-
         queue.add(jsonRequest);
-    }
-
-    public void getIndexJsonServ(Context context, Cache cache){
-
     }
 
     public void getStringServ(final Context context, final String xml, final Cache cache, final int size, final int fichier){
@@ -78,26 +66,8 @@ public class ServerConnection {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        //final DiskBasedCache diskCache = (DiskBasedCache) cache;
-                        //File file = diskCache.getFileForKey(url);
                         File file = putFileIntoLocal(context, xml,response);
                         filesAvailab.add(putFileIntoLocal(context, xml,response));
-                     /*   try {
-                            String filePath = context.getApplicationContext().getFilesDir().getName() + "/" + file.getName();
-                            AssetManager assetManager = context.getAssets();
-                            InputStream input = assetManager.open(file.getAbsolutePath());
-                            byte[] buffer = new byte[input.available()];
-                            input.read(buffer);
-                            input.close();
-
-                            FileOutputStream output = new FileOutputStream(filePath);
-                            output.write(buffer);
-                            output.close();
-                            filesAvailab.add(file);
-
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }*/
                     }
                 },
                 new Response.ErrorListener() {
@@ -109,6 +79,30 @@ public class ServerConnection {
         );
 
         queue.add(stringRequest);
+    }
+
+    public void getYml(final Context context){
+        final String url = "http://www-rech.telecom-lille.fr/nonfreesift/vocabulary.yml";
+
+        RequestQueue queue = Volley.newRequestQueue(context);
+
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        //final DiskBasedCache diskCache = (DiskBasedCache) cache;
+                        //File file = diskCache.getFileForKey(url);
+                        File file = putFileIntoLocal(context, "vocabulary", response);
+                        vocabulary=file;
+                    }
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Log.d("Volley", "Volley string error :" + error);
+                        }
+                    }
+        );
     }
 
     public static File putFileIntoLocal(Context context, String fileName, String response) {
